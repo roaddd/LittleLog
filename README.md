@@ -1,0 +1,2 @@
+# LittleLog
+Imitation log system.

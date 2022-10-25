@@ -96,16 +96,10 @@ namespace littlelog
         bool operator+=(LogLine &);
     };
 
-    struct QueueLogger
-    {
-
-    };
-
-
     void set_level(LogLevel lg);
     bool level_isvalid(LogLevel lg);
 
-    void init(QueueLogger ql,std::string log_dir,std::string log_file,uint32_t roll_size);
+    void init(std::string log_dir,std::string log_file,uint32_t roll_size);
 }
 
 

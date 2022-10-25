@@ -4,6 +4,8 @@
 #include <cstring>
 #include <string>
 #include <ostream>
+#include <queue>
+#include <atomic>
 
 namespace littlelog
 {
@@ -269,14 +271,121 @@ namespace littlelog
 
     class QueueBuffer
     {
-        
+    public:
+        QueueBuffer():cur_read_buffer(nullptr),flag(ATOMIC_FLAG_INIT),write_index(0)
+        {
+            setup_new_buffer();
+        }
+
+        void push(LogLine&& lg)
+        {
+            unsigned int next_write=write_index.fetch_add(1,std::memory_order_relaxed);
+            if(next_write<Buffer::sz)
+            {
+                if(cur_write_buffer.load(std::memory_order_acquire)->push(std::move(lg)))
+                    setup_new_buffer();
+            }
+            else
+            {
+                while(write_index.load(std::memory_order_acquire)>=Buffer::sz);
+                push(std::move(lg));
+            }
+        }
+
+        void setup_new_buffer()
+        {
+            std::unique_ptr<Buffer> next_buffer(new Buffer());
+            cur_write_buffer.store(next_buffer.get(),std::memory_order_release);
+            SpinLock sl(flag);
+            buffers.push(std::move(next_buffer));
+            write_index.store(0,std::memory_order_relaxed);
+        }
+    private:
+        //多个线程的消费者共同访问，需要使用原子变量或者加锁
+        std::queue<std::unique_ptr<Buffer>> buffers;
+        std::atomic<Buffer*> cur_write_buffer;
+        std::atomic<unsigned int> write_index;
+        std::atomic_flag flag;
+        //主线程读取的变量，不存在竞争
+        Buffer* cur_read_buffer;
     };
 
+
+    class write_to_file
+    {
+    public:
+        write_to_file(const std::string& dir,const std::string& file,uint32_t roll_size):
+        write_to(dir+file),roll_size_bytes(roll_size*1024*1024)
+        {
+
+        }
+
+        void write(LogLine& lg)
+        {
+
+        }
+    private:
+        const std::string write_to;
+        const uint32_t roll_size_bytes;
+        uint32_t file_number=0;
+    };
 
     class LittleLogger
     {
+    public:
+        LittleLogger(const std::string& dir,const std::string& file,uint32_t roll_size):
+        state(State::INTI),log_buffer(new QueueBuffer()),writer(dir,file,roll_size),
+        read_thread(&LittleLogger::work,this)
+        {
+            state.store(State::READY,std::memory_order_release);
+        }
 
+        ~LittleLogger()
+        {
+            state.store(State::SHOUTDOWN);
+            read_thread.join();
+        }
+
+        void add(LogLine&& lg)
+        {
+            log_buffer->push(std::move(lg));
+        }
+
+        void work()
+        {
+
+        }
+    private:
+        enum class State{
+            INTI,READY,SHOUTDOWN
+        };
+        std::atomic<State> state;
+        std::unique_ptr<QueueBuffer> log_buffer;
+        write_to_file writer;
+        std::thread read_thread;
     };
+
+    std::unique_ptr<LittleLogger> littlelog;
+    std::atomic<LittleLogger*> atomic_littlelog;
+
+    /**
+     * @brief 不同的线程通过此重载运算符向日志主线程中放入新的日志信息
+     * 
+     * @param lg 
+     * @return true 
+     * @return false 
+     */
+    bool Log::operator+=(LogLine& lg)
+    {
+        atomic_littlelog.load(std::memory_order_acquire)->add(std::move(lg));
+        return true;
+    }
+
+    void init(const std::string& directory,const std::string& file,uint32_t roll_size)
+    {
+        littlelog.reset(new LittleLogger(directory,file,roll_size));
+        atomic_littlelog.store(littlelog.get(),std::memory_order_seq_cst);
+    }
 }
 
 

@@ -6,6 +6,8 @@
 #include <ostream>
 #include <queue>
 #include <atomic>
+#include <fstream>
+#include <iostream>
 
 namespace littlelog
 {
@@ -85,10 +87,11 @@ namespace littlelog
 
     void LogLine::encode(string_literal_t arg)
     {
-        
+        std::cout<<"encode"<<std::endl;
+        encode<string_literal_t>(arg,TupleIndex<string_literal_t,SupportedTypes>::value);
     }
 
-    LogLine::LogLine(LogLevel level,const char* dir,const char* file,const char* function,uint32_t line)
+    LogLine::LogLine(LogLevel level,const char* file,const char* function,uint32_t line)
     :bytes_used(0),buffer_size(sizeof(stack_buffer))
     {
         encode<uint64_t> (timestamp());
@@ -98,6 +101,8 @@ namespace littlelog
         encode<uint32_t> (line);
         encode<LogLevel>(level);
     }
+
+    LogLine::~LogLine()=default;
 
     template<>
     LogLine& LogLine::operator<<(const char* arg)
@@ -136,6 +141,11 @@ namespace littlelog
         return "";
     }
 
+    /**
+     * @brief 格式化输出函数
+     * 
+     * @param os :输出文件流
+     */
     void LogLine::stringify(std::ostream& os)
     {
         char* b=!heap_buffer?stack_buffer:heap_buffer.get();
@@ -161,8 +171,18 @@ namespace littlelog
         os<<"\n";
         if(lg>=LogLevel::INFO)
             os.flush();
+        std::cout<<"stringfy"<<std::endl;
     }
 
+    /**
+     * @brief 针对不同数据类型的输出函数，供stringify格式化函数使用
+     * 
+     * @tparam Arg 
+     * @param os 
+     * @param b 
+     * @param dummy 
+     * @return char* 
+     */
     template<typename Arg>
     char* decode(std::ostream& os,char* b,Arg* dummy)
     {
@@ -192,6 +212,13 @@ namespace littlelog
         return ++b;
     }
 
+    /**
+     * @brief 此函数递归地调用，格式化不同类型的数据
+     * 
+     * @param os 
+     * @param start 
+     * @param end 
+     */
     void LogLine::stringify(std::ostream& os,char* start,const char* end)
     {
         if(start==end)return;
@@ -199,11 +226,37 @@ namespace littlelog
         start++;
         switch (idx)
         {
-        case 0:
-            stringify(os,decode(os,start,static_cast<std::tuple_element_t<0,SupportedTypes>*>(nullptr)),end);
+            case 0:
+                stringify(os,decode(os,start,static_cast<std::tuple_element_t<0,SupportedTypes>*>(nullptr)),end);
+                return;
+            case 1:
+                stringify(os,decode(os,start,static_cast<std::tuple_element_t<1,SupportedTypes>*>(nullptr)),end);
+                return;
+            case 2:
+                stringify(os,decode(os,start,static_cast<std::tuple_element_t<2,SupportedTypes>*>(nullptr)),end);
+                return;
+            case 3:
+                stringify(os,decode(os,start,static_cast<std::tuple_element_t<3,SupportedTypes>*>(nullptr)),end);
+                return;
+            case 4:
+                stringify(os,decode(os,start,static_cast<std::tuple_element_t<4,SupportedTypes>*>(nullptr)),end);
+                return;
+            case 5:
+                stringify(os,decode(os,start,static_cast<std::tuple_element_t<5,SupportedTypes>*>(nullptr)),end);
+                return;
+            case 6:
+                stringify(os,decode(os,start,static_cast<std::tuple_element_t<6,SupportedTypes>*>(nullptr)),end);
+                return;
+            case 7:
+                stringify(os,decode(os,start,static_cast<std::tuple_element_t<7,SupportedTypes>*>(nullptr)),end);
+                return;
         }
     }
 
+    /**
+     * @brief 原子变量实现的自旋锁
+     * 
+     */
     struct SpinLock
     {
         SpinLock(std::atomic_flag& flag):flag(flag)
@@ -218,6 +271,11 @@ namespace littlelog
         std::atomic_flag& flag;
     };
 
+    /**
+     * @brief 日志信息的缓冲区，每个缓冲区大小为8MB，每个日志信息占用的空间为256字节，因此每个
+     *        缓冲区可存放的日志信息的数量为32768个
+     * 
+     */
     class Buffer
     {
     public:
@@ -251,6 +309,8 @@ namespace littlelog
         {
             new (&buffer[new_idx]) Item(std::move(lg));
             write_state[new_idx].store(1,std::memory_order_release);
+            //----------------------------------------
+            std::cout<<"push"<<write_state[new_idx].load()<<std::endl;
             return write_state[sz].fetch_add(1,std::memory_order_acquire)+1==sz;
         }
 
@@ -259,6 +319,8 @@ namespace littlelog
             unsigned int state=write_state[read_idx].load(std::memory_order_acquire);
             if(!state)return false;
             lg=std::move(buffer[read_idx].lg);
+            /*----------------------------------*/
+            lg.stringify(std::cout);
             return true;
         }
 
@@ -269,10 +331,14 @@ namespace littlelog
         std::atomic<unsigned int> write_state[sz+1];
     };
 
+    /**
+     * @brief 日志信息缓冲区的环形队列，用来存放Buffer
+     * 
+     */
     class QueueBuffer
     {
     public:
-        QueueBuffer():cur_read_buffer(nullptr),flag(ATOMIC_FLAG_INIT),write_index(0)
+        QueueBuffer():cur_read_buffer(nullptr),flag(ATOMIC_FLAG_INIT),write_index(0),read_index(1)
         {
             setup_new_buffer();
         }
@@ -282,7 +348,8 @@ namespace littlelog
             unsigned int next_write=write_index.fetch_add(1,std::memory_order_relaxed);
             if(next_write<Buffer::sz)
             {
-                if(cur_write_buffer.load(std::memory_order_acquire)->push(std::move(lg)))
+                std::cout<<"write_index"<<write_index<<std::endl;
+                if(cur_write_buffer.load(std::memory_order_acquire)->push(std::move(lg),write_index))
                     setup_new_buffer();
             }
             else
@@ -290,6 +357,37 @@ namespace littlelog
                 while(write_index.load(std::memory_order_acquire)>=Buffer::sz);
                 push(std::move(lg));
             }
+        }
+
+        void get_next_read_buffer()
+        {
+            SpinLock sp(flag);
+            cur_read_buffer=buffers.size()?buffers.front().get():nullptr;
+        }
+
+        bool try_pop(LogLine& lg)
+        {
+            if(cur_read_buffer==nullptr)
+                get_next_read_buffer();
+            if(cur_read_buffer==nullptr)
+                return false;
+            Buffer* bf=cur_read_buffer;
+            std::cout<<(bf==nullptr)<<std::endl;
+            if(bool succedd=bf->try_pop(lg,read_index))
+            {
+                std::cout<<succedd<<std::endl;
+                read_index++;
+                if(read_index==Buffer::sz)//该日志缓冲区已读完
+                {
+                    read_index=0;
+                    cur_read_buffer=nullptr;
+                    SpinLock sp(flag);
+                    buffers.pop();
+                }
+                return true;
+            }
+            else
+                return false;
         }
 
         void setup_new_buffer()
@@ -301,6 +399,7 @@ namespace littlelog
             write_index.store(0,std::memory_order_relaxed);
         }
     private:
+        //保证数据同步
         //多个线程的消费者共同访问，需要使用原子变量或者加锁
         std::queue<std::unique_ptr<Buffer>> buffers;
         std::atomic<Buffer*> cur_write_buffer;
@@ -308,28 +407,63 @@ namespace littlelog
         std::atomic_flag flag;
         //主线程读取的变量，不存在竞争
         Buffer* cur_read_buffer;
+        unsigned int read_index;
     };
 
-
+    /**
+     * @brief 向文件中写日志信息
+     * 
+     */
     class write_to_file
     {
     public:
         write_to_file(const std::string& dir,const std::string& file,uint32_t roll_size):
         write_to(dir+file),roll_size_bytes(roll_size*1024*1024)
         {
-
+            roll_file();
         }
 
         void write(LogLine& lg)
         {
+            std::cout<<"write"<<std::endl;
+            auto pos=os->tellp();
+            std::cout<<pos<<std::endl;
+            lg.stringify(*os);
+            bytes_writed+=os->tellp()-pos;
+            if(bytes_writed>=roll_size_bytes)
+                roll_file();
+        }
 
+        void roll_file()
+        {
+            if(os)
+            {
+                os->flush();
+                os->close();
+            }
+            bytes_writed=0;
+            os.reset(new std::ofstream());
+            std::string file_name=write_to;
+            file_name.append(".");
+            file_name.append(std::to_string(file_number));
+            file_number++;
+            file_name.append(".txt");
+            os->open(file_name,std::ofstream::out|std::ofstream::trunc);
+            std::cout<<file_name<<std::endl;
         }
     private:
+        std::unique_ptr<std::ofstream> os;
         const std::string write_to;
         const uint32_t roll_size_bytes;
         uint32_t file_number=0;
+        uint32_t bytes_writed=0;
     };
 
+    /**
+     * @brief 实现了日志系统的后台线程，该线程不断地检查缓冲区队列中是否存在未写入文件的日志；
+     *      如有，取出写入文件，若没有，则sleep
+     * 
+     */
     class LittleLogger
     {
     public:
@@ -338,6 +472,7 @@ namespace littlelog
         read_thread(&LittleLogger::work,this)
         {
             state.store(State::READY,std::memory_order_release);
+            std::cout<<static_cast<uint32_t>(state.load(std::memory_order_acquire))<<std::endl;
         }
 
         ~LittleLogger()
@@ -348,12 +483,27 @@ namespace littlelog
 
         void add(LogLine&& lg)
         {
+            std::cout<<"add"<<std::endl;
             log_buffer->push(std::move(lg));
         }
 
         void work()
         {
-
+            std::cout<<"work"<<std::endl;
+            while(state.load(std::memory_order_acquire)==State::INTI)
+                std::this_thread::sleep_for(std::chrono::microseconds(50));
+            LogLine curLog(LogLevel::INFO,nullptr,nullptr,0);
+            //std::cout<<static_cast<uint32_t>(state.load())<<std::endl;
+            while(state.load()==State::READY)
+            {
+                if(log_buffer.get()->try_pop(curLog))
+                    writer.write(curLog);
+                else
+                    std::this_thread::sleep_for(std::chrono::microseconds(50));
+            }
+            while(log_buffer->try_pop(curLog))
+                writer.write(curLog);
+            std::cout<<"---work---"<<std::endl;
         }
     private:
         enum class State{
@@ -375,10 +525,23 @@ namespace littlelog
      * @return true 
      * @return false 
      */
-    bool Log::operator+=(LogLine& lg)
+    bool Log::operator==(LogLine& lg)
     {
+        std::cout<<"*************"<<std::endl;
         atomic_littlelog.load(std::memory_order_acquire)->add(std::move(lg));
         return true;
+    }
+
+    std::atomic<unsigned int> loglevel(0);
+
+    void set_level(LogLevel lg)
+    {
+        loglevel.store(static_cast<unsigned int>(lg),std::memory_order_release);
+    }
+
+    bool level_isvalid(LogLevel lv)
+    {
+        return static_cast<unsigned int>(lv)>=loglevel.load(std::memory_order_relaxed);
     }
 
     void init(const std::string& directory,const std::string& file,uint32_t roll_size)

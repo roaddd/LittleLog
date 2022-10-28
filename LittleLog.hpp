@@ -1,9 +1,12 @@
+# define _GLIBCXX_USE_CXX11_ABI 0
+
 #ifndef LITTLELOG_HPP
 #define LITTLELOG_HPP
 
 #include <stdint.h>
 #include <string.h>
 #include <memory>
+#include <iostream>
 
 namespace littlelog
 {
@@ -20,7 +23,7 @@ namespace littlelog
     class LogLine
     {
     public:
-        LogLine(LogLevel level,const char* dir,const char* file,const char* function,uint32_t line);
+        LogLine(LogLevel level,const char* file,const char* function,uint32_t line);
         ~LogLine();
 
         LogLine(LogLine &&)=default;
@@ -47,6 +50,7 @@ namespace littlelog
         template<size_t N>
         LogLine& operator<<(const char(&arg)[N])//" "
         {
+            std::cout<<"operator<<"<<std::endl;
             encode(string_literal_t(arg));
             return *this;
         }
@@ -67,13 +71,17 @@ namespace littlelog
         {
             *reinterpret_cast<Arg*>(get_index())=arg;
             bytes_used+=sizeof(arg);
+            std::cout<<"bytes_used:"<<bytes_used<<std::endl;
         }
 
         template<typename Arg>
         void encode(Arg arg,uint8_t type_id)
         {
+            std::cout<<"---79---"<<std::endl;
             resize_buffer(sizeof(arg)+sizeof(type_id));
+            std::cout<<"---81---"<<std::endl;
             encode<uint8_t>(type_id);
+            std::cout<<"---83---"<<std::endl;
             encode<Arg>(arg);
         }
 
@@ -93,19 +101,19 @@ namespace littlelog
 
     struct Log
     {
-        bool operator+=(LogLine &);
+        bool operator==(LogLine &);
     };
 
     void set_level(LogLevel lg);
     bool level_isvalid(LogLevel lg);
 
-    void init(std::string log_dir,std::string log_file,uint32_t roll_size);
+    void init(const std::string& log_dir,const std::string& log_file,uint32_t roll_size);
 }
 
 
-#define LOG(level) (Log()+=LogLine())
-#define LOG_INFO level_isvalid(LogLevel::INFO) && LOG(LogLevel::INFO)
-#define LOG_WARN level_isvalid(LogLevel::WARN) && LOG(LogLevel::WARN)
-#define LOG_WARN level_isvalid(LogLevel::DEBUG) && LOG(LogLevel::DEBUG)
+#define LOG(LEVEL) littlelog::Log()==littlelog::LogLine(LEVEL,__FILE__,__func__,__LINE__)
+#define LOG_INFO littlelog::level_isvalid(littlelog::LogLevel::INFO) && LOG(littlelog::LogLevel::INFO)
+#define LOG_WARN littlelog::level_isvalid(littlelog::LogLevel::WARN) && LOG(littlelog::LogLevel::WARN)
+#define LOG_WARN littlelog::level_isvalid(littlelog::LogLevel::DEBUG) && LOG(littlelog::LogLevel::DEBUG)
 
 #endif

@@ -3,9 +3,9 @@
 
 int main()
 {
-    using namespace::littlelog;
-    LogLine *ll =new LogLine(LogLevel::INFO,"D:\\Github\\c-learning\\NanoLog11\\Log11\\Log11","tmp.txt","None",0);
-    *ll<<"Hello LittleLog";
-    ll->stringify(std::cout);
+    littlelog::init("/tmp/","log",1);
+    LOG_INFO<<"Hello"<<888;
+    LOG_INFO<<"第一条测试日志\n";
+    LOG_INFO<<"第二条测试日志：infojfosdfosdjisjf";
     return 0;
 }

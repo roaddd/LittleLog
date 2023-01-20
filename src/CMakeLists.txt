@@ -1,0 +1,2 @@
+MESSAGE(STATUS "source:" ${SOURCE_DIR})
+MESSAGE(STATUS "project_source:" ${PROJECT_SOURCE_DIR})

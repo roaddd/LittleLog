@@ -5,7 +5,6 @@
 #include <string.h>
 #include <memory>
 #include <iostream>
-#include "Util.hpp"
 
 namespace littlelog
 {

@@ -4,7 +4,7 @@
 namespace littlelog
 {
 
-        Buffer():buffer(static_cast<Item*>(std::malloc(sz*sizeof(Item))))
+        Buffer::Buffer():buffer(static_cast<Item*>(std::malloc(sz*sizeof(Item))))
         {
             for(int i=0;i<=sz;i++)
             {

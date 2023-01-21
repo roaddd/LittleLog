@@ -3,6 +3,7 @@
 
 #include <string>
 #include <atomic>
+#include <thread>
 #include "QueueBuffer.hpp"
 #include "Write_to_file.hpp"
 

@@ -1,5 +1,4 @@
 #include "LittleLog.hpp"
-#include "Util.hpp"
 #include "SpinLock.hpp"
 #include <thread>
 #include <cstring>
@@ -14,6 +13,17 @@
 namespace littlelog
 {
     typedef std::tuple<char,char*,uint32_t,uint64_t,int32_t,int64_t,double,littlelog::LogLine::string_literal_t> SupportedTypes;
+
+    uint64_t timestamp()
+    {
+        return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    }
+
+    std::thread::id this_thread_id()
+    {
+        static const thread_local std::thread::id id=std::this_thread::get_id();
+        return id;
+    }
 
     char* LogLine::get_index()
     {
@@ -57,13 +67,14 @@ namespace littlelog
 
     void LogLine::encode_c_string(const char* arg,size_t length)
     {
+        //std::cout<<"arg: "<<arg<<std::endl;
         if(!length)return;
         resize_buffer(length);
         char* cur=get_index();
         auto tp=TupleIndex<char*,SupportedTypes>::value;
         *reinterpret_cast<uint8_t*>(cur++)=static_cast<uint8_t>(tp);
         memcpy(cur,arg,length+1);
-        cur+=length+2;
+        bytes_used+=length+2;
     }
 
     void LogLine::encode(char* arg)
@@ -127,6 +138,7 @@ namespace littlelog
 
     LogLine& LogLine::operator<<(const std::string& arg)
     {
+        //std::cout<<"std::string"<<std::endl;
         encode_c_string(arg.c_str(),arg.length());
     }
 

@@ -32,7 +32,9 @@ namespace littlelog
         while(state.load()==State::READY)
         {
             if(log_buffer.get()->try_pop(curLog))
+            {
                 writer.write(curLog);
+            }    
             else
                 std::this_thread::sleep_for(std::chrono::microseconds(50));
         }

@@ -30,7 +30,7 @@ private:
     //多个线程的消费者共同访问，需要使用原子变量或者加锁
     std::queue<std::unique_ptr<Buffer>> buffers;
     std::atomic<Buffer*> cur_write_buffer;
-    std::atomic<unsigned int> write_index;
+    std::atomic<int> write_index;
     std::atomic_flag flag;
     //主线程读取的变量，不存在竞争
     Buffer* cur_read_buffer;

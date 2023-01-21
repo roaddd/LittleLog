@@ -4,7 +4,9 @@
 namespace littlelog
 {
     QueueBuffer::QueueBuffer():cur_read_buffer(nullptr),flag(ATOMIC_FLAG_INIT),write_index(0),read_index(0)
-    { }
+    {
+        setup_new_buffer();
+    }
 
     void QueueBuffer::push(LogLine&& lg)
     {
@@ -12,7 +14,7 @@ namespace littlelog
         if(next_write<Buffer::sz)
         {
             //std::cout<<"write_index"<<write_index<<std::endl;
-            if(cur_write_buffer.load(std::memory_order_acquire)->push(std::move(lg),write_index))
+            if(cur_write_buffer.load(std::memory_order_acquire)->push(std::move(lg),next_write))
                 setup_new_buffer();
         }
         else
@@ -35,7 +37,7 @@ namespace littlelog
         if(cur_read_buffer==nullptr)
             return false;
         Buffer* bf=cur_read_buffer;
-        //std::cout<<(bf==nullptr)<<std::endl;
+        //std::cout<<"read_index: "<<read_index<<std::endl;
         if(bool succedd=bf->try_pop(lg,read_index))
         {
             //std::cout<<succedd<<std::endl;

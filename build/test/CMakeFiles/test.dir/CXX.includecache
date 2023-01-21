@@ -1,0 +1,30 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../src/LittleLog.hpp
+stdint.h
+-
+string.h
+-
+memory
+-
+iostream
+-
+
+/home/presonal/project/LittleLog/LittleLog/test/test.cpp
+iostream
+-
+LittleLog.hpp
+/home/presonal/project/LittleLog/LittleLog/test/LittleLog.hpp
+vector
+-
+chrono
+-
+thread
+-
+

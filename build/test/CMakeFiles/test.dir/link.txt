@@ -1,1 +1,0 @@
-/usr/lib/ccache/c++   -g    CMakeFiles/test.dir/test.cpp.o  -o ../bin/test -rdynamic ../lib/liblittlelog.a -lpthread 

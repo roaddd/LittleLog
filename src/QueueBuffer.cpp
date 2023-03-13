@@ -13,7 +13,6 @@ namespace littlelog
         unsigned int next_write=write_index.fetch_add(1,std::memory_order_relaxed);
         if(next_write<Buffer::sz)
         {
-            //std::cout<<"write_index"<<write_index<<std::endl;
             if(cur_write_buffer.load(std::memory_order_acquire)->push(std::move(lg),next_write))
                 setup_new_buffer();
         }
@@ -37,10 +36,8 @@ namespace littlelog
         if(cur_read_buffer==nullptr)
             return false;
         Buffer* bf=cur_read_buffer;
-        //std::cout<<"read_index: "<<read_index<<std::endl;
         if(bool succedd=bf->try_pop(lg,read_index))
         {
-            //std::cout<<succedd<<std::endl;
             read_index++;
             if(read_index==Buffer::sz)//该日志缓冲区已读完
             {

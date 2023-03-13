@@ -9,7 +9,7 @@
 namespace littlelog
 {
     /**
-     * @brief 日志信息缓冲区的环形队列，用来存放Buffer
+     * @brief 日志信息缓冲区队列，用来存放Buffer
      * 
      */
 class QueueBuffer

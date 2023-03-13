@@ -56,18 +56,17 @@ namespace littlelog
     template<typename T,typename...Types>
     struct TupleIndex<T,std::tuple<T,Types...>>
     {
-        static const constexpr std::size_t value=0;
+        static constexpr std::size_t value=0;
     };
 
     template<typename T,typename U,typename...Types>
     struct TupleIndex<T,std::tuple<U,Types...>>
     {
-        static const constexpr std::size_t value=1+TupleIndex<T,std::tuple<Types...>>::value; 
+        static constexpr std::size_t value=1+TupleIndex<T,std::tuple<Types...>>::value; 
     };
 
     void LogLine::encode_c_string(const char* arg,size_t length)
     {
-        //std::cout<<"arg: "<<arg<<std::endl;
         if(!length)return;
         resize_buffer(length);
         char* cur=get_index();
@@ -89,7 +88,6 @@ namespace littlelog
 
     void LogLine::encode(string_literal_t arg)
     {
-        //std::cout<<"encode"<<std::endl;
         encode<string_literal_t>(arg,TupleIndex<LogLine::string_literal_t,SupportedTypes>::value);
     }
 
@@ -109,37 +107,43 @@ namespace littlelog
     LogLine& LogLine::operator<<(char arg)
     {
         encode<char>(arg,TupleIndex<char,SupportedTypes>::value);
+        return *this;
     }
 
     LogLine& LogLine::operator<<(int32_t arg)
     {
         encode<int32_t>(arg,TupleIndex<int32_t,SupportedTypes>::value);
+        return *this;
     }
 
     LogLine& LogLine::operator<<(uint32_t arg)
     {
         encode<uint32_t>(arg,TupleIndex<uint32_t,SupportedTypes>::value);
+        return *this;
     }
 
     LogLine& LogLine::operator<<(int64_t arg)
     {
         encode<int64_t>(arg,TupleIndex<int64_t,SupportedTypes>::value);
+        return *this;
     }
 
     LogLine& LogLine::operator<<(uint64_t arg)
     {
         encode<uint64_t>(arg,TupleIndex<uint64_t,SupportedTypes>::value);
+        return *this;
     }
 
     LogLine& LogLine::operator<<(double arg)
     {
         encode<double>(arg,TupleIndex<double,SupportedTypes>::value);
+        return *this;
     }
 
     LogLine& LogLine::operator<<(const std::string& arg)
     {
-        //std::cout<<"std::string"<<std::endl;
         encode_c_string(arg.c_str(),arg.length());
+        return *this;
     }
 
     void format_time(std::ostream& os,uint64_t times)
@@ -149,7 +153,7 @@ namespace littlelog
         char b[32];
         strftime(b,32,"%Y-%m-%d %T.",g);
         char mic[7];
-        sprintf(mic,"%06llu",times%1000000);
+        sprintf(mic,"%06llu",static_cast<long long unsigned int>(times%1000000));
         os<<'['<<b<<mic<<']';
     }
 
@@ -197,7 +201,6 @@ namespace littlelog
         os<<"\n";
         if(lg>=LogLevel::INFO)
             os.flush();
-        //std::cout<<"stringfy"<<std::endl;
     }
 
     /**
@@ -293,7 +296,6 @@ namespace littlelog
      */
     bool Log::operator==(LogLine& lg)
     {
-        //std::cout<<"*************"<<std::endl;
         atomic_littlelog.load(std::memory_order_acquire)->add(std::move(lg));
         return true;
     }

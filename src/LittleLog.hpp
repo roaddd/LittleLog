@@ -112,6 +112,6 @@ namespace littlelog
 #define LOG(LEVEL) littlelog::Log()==littlelog::LogLine(LEVEL,__FILE__,__func__,__LINE__)
 #define LOG_INFO littlelog::level_isvalid(littlelog::LogLevel::INFO) && LOG(littlelog::LogLevel::INFO)
 #define LOG_WARN littlelog::level_isvalid(littlelog::LogLevel::WARN) && LOG(littlelog::LogLevel::WARN)
-#define LOG_WARN littlelog::level_isvalid(littlelog::LogLevel::DEBUG) && LOG(littlelog::LogLevel::DEBUG)
+#define LOG_DEBUG littlelog::level_isvalid(littlelog::LogLevel::DEBUG) && LOG(littlelog::LogLevel::DEBUG)
 
 #endif

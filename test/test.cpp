@@ -4,7 +4,6 @@
 #include <chrono>
 #include <thread>
 
-
 void work()
 {
     const int cnt=100;
@@ -31,6 +30,6 @@ void benchmark(Fun&& f,int count)
 int main()
 {
     littlelog::init("/tmp/","log",1);
-    benchmark(work,3);
+    benchmark(work,5);
     return 0;
 }

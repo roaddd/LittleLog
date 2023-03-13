@@ -7,7 +7,6 @@ namespace littlelog
     read_thread(&LittleLogger::work,this)
     {
         state.store(State::READY,std::memory_order_release);
-        //std::cout<<static_cast<uint32_t>(state.load(std::memory_order_acquire))<<std::endl;
     }
 
     LittleLogger::~LittleLogger()
@@ -18,17 +17,14 @@ namespace littlelog
 
     void LittleLogger::add(LogLine&& lg)
     {
-        //std::cout<<"add"<<std::endl;
         log_buffer->push(std::move(lg));
     }
 
     void LittleLogger::work()
     {
-        //std::cout<<"work"<<std::endl;
         while(state.load(std::memory_order_acquire)==State::INTI)
             std::this_thread::sleep_for(std::chrono::microseconds(50));
         LogLine curLog(LogLevel::INFO,nullptr,nullptr,0);
-        //std::cout<<static_cast<uint32_t>(state.load())<<std::endl;
         while(state.load()==State::READY)
         {
             if(log_buffer.get()->try_pop(curLog))
@@ -40,6 +36,5 @@ namespace littlelog
         }
         while(log_buffer->try_pop(curLog))
             writer.write(curLog);
-        //std::cout<<"---work---"<<std::endl;
     }
 }

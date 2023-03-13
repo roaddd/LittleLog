@@ -23,6 +23,12 @@ set(CXX_FLAGS
  #-rdynamic
  )
 
+option(TERMINAL_DISPLAY "Log information is displayed on the terminal?" OFF)
+
+if(TERMINAL_DISPLAY)
+    add_compile_definitions(TERMINAL_DISPLAY=1)
+endif()
+
  set(CMAKE_CXX_FLAGS "-g -Werror")
 
  set(CMAKE_CXX_COMPLIER "g++")

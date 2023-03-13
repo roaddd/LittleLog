@@ -26,8 +26,6 @@ namespace littlelog
         {
             new (&buffer[new_idx]) Item(std::move(lg));
             write_state[new_idx].store(1,std::memory_order_release);
-            //----------------------------------------
-            //std::cout<<"push"<<write_state[new_idx].load()<<std::endl;
             return write_state[sz].fetch_add(1,std::memory_order_acquire)+1==sz;
         }
 
@@ -36,8 +34,11 @@ namespace littlelog
             unsigned int state=write_state[read_idx].load(std::memory_order_acquire);
             if(!state)return false;
             lg=std::move(buffer[read_idx].lg);
-            /*----------------------------------*/
-            lg.stringify(std::cout);
+
+            #ifdef TERMINAL_DISPLAY
+                lg.stringify(std::cout);
+            #endif
+            
             return true;
         }
 

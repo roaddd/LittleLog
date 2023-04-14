@@ -19,16 +19,16 @@ void work()
     LOG_INFO<<s;
 	LOG_INFO <<"abckso"<<9<<'k'<<5679812;
     uint64_t end = std::chrono::steady_clock::now().time_since_epoch() / std::chrono::microseconds(1);
-    long int avg_latency = (end - start) * 100 / cnt;
+    long int avg_latency = (end - start) * 1000 / cnt;
     printf("\tAverage LittleLog Latency = %ld nanoseconds\n", avg_latency);
 }
 ```
 测试结果：
 ```
-        Average LittleLog Latency = 52 nanoseconds
-        Average LittleLog Latency = 52 nanoseconds
-        Average LittleLog Latency = 63 nanoseconds
-        Average LittleLog Latency = 63 nanoseconds
-        Average LittleLog Latency = 60 nanoseconds
+        Average LittleLog Latency = 520 nanoseconds
+        Average LittleLog Latency = 520 nanoseconds
+        Average LittleLog Latency = 630 nanoseconds
+        Average LittleLog Latency = 630 nanoseconds
+        Average LittleLog Latency = 600 nanoseconds
 ```
 

@@ -72,7 +72,7 @@ namespace littlelog
         char* cur=get_index();
         auto tp=TupleIndex<char*,SupportedTypes>::value;
         *reinterpret_cast<uint8_t*>(cur++)=static_cast<uint8_t>(tp);
-        memcpy(cur,arg,length+1);
+        memcpy(cur,arg,length+1);//注意+1 -> '\n'
         bytes_used+=length+2;
     }
 
